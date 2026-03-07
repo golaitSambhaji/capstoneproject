@@ -23,8 +23,10 @@ kind: Service
 metadata:
   name: product-service
 spec:
+  type: NodePort              # changed from ClusterIP
   selector:
     app: product
   ports:
-  - port: 5000
-    targetPort: 5000
+    - port: 5000              # service port
+      targetPort: 5000        # container port
+      nodePort: 30001         # external NodePort
