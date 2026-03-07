@@ -28,8 +28,7 @@ pipeline {
             steps {
                 sh '''
                 docker build -t ${DOCKER_HUB_USER}/ecommerce-frontend:latest ./frontend
-                docker push ${DOCKER_HUB_USER}/ecommerce-frontend:v2
-
+                docker push ${DOCKER_HUB_USER}/ecommerce-frontend:latest
                 docker build -t ${DOCKER_HUB_USER}/ecommerce-product:latest ./product-service
                 docker push ${DOCKER_HUB_USER}/ecommerce-product:latest
 
