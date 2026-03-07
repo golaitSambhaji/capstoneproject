@@ -45,15 +45,20 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
+                kubectl apply -f k8s/mysql.yaml
                 kubectl apply -f k8s/frontend.yaml
                 kubectl apply -f k8s/product.yaml
                 kubectl apply -f k8s/order.yaml
                 kubectl apply -f k8s/inventory.yaml
+                
+
 
                 kubectl rollout status deployment/frontend-deployment
                 kubectl rollout status deployment/product-deployment
                 kubectl rollout status deployment/order-deployment
                 kubectl rollout status deployment/inventory-deployment
+                kubectl rollout status deployment/mysql
+
                 '''
             }
         }
