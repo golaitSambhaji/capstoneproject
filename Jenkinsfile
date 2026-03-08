@@ -29,6 +29,7 @@ pipeline {
                 sh '''
                 docker build -t ${DOCKER_HUB_USER}/ecommerce-frontend:latest ./frontend
                 docker push ${DOCKER_HUB_USER}/ecommerce-frontend:latest
+
                 docker build -t ${DOCKER_HUB_USER}/ecommerce-product:latest ./product-service
                 docker push ${DOCKER_HUB_USER}/ecommerce-product:latest
 
@@ -43,22 +44,33 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh '''
-                kubectl apply -f k8s/mysql.yaml
-                kubectl apply -f k8s/frontend.yaml
-                kubectl apply -f k8s/product.yaml
-                kubectl apply -f k8s/order.yaml
-                kubectl apply -f k8s/inventory.yaml
-                
+                script {
+                    try {
+                        sh '''
+                        kubectl apply -f k8s/mysql.yaml
+                        kubectl apply -f k8s/frontend.yaml
+                        kubectl apply -f k8s/product.yaml
+                        kubectl apply -f k8s/order.yaml
+                        kubectl apply -f k8s/inventory.yaml
 
-
-                kubectl rollout status deployment/frontend-deployment
-                kubectl rollout status deployment/product-deployment
-                kubectl rollout status deployment/order-deployment
-                kubectl rollout status deployment/inventory-deployment
-                kubectl rollout status deployment/mysql
-
-                '''
+                        kubectl rollout status deployment/frontend-deployment --timeout=60s
+                        kubectl rollout status deployment/product-deployment --timeout=60s
+                        kubectl rollout status deployment/order-deployment --timeout=60s
+                        kubectl rollout status deployment/inventory-deployment --timeout=60s
+                        kubectl rollout status deployment/mysql --timeout=60s
+                        '''
+                    } catch (Exception e) {
+                        echo "❌ Deployment failed, rolling back..."
+                        sh '''
+                        kubectl rollout undo deployment/frontend-deployment || true
+                        kubectl rollout undo deployment/product-deployment || true
+                        kubectl rollout undo deployment/order-deployment || true
+                        kubectl rollout undo deployment/inventory-deployment || true
+                        kubectl rollout undo deployment/mysql || true
+                        '''
+                        error("Deployment failed and rollback executed.")
+                    }
+                }
             }
         }
     }
