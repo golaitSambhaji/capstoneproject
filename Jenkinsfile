@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         DOCKER_HUB_USER = 'samg1988'
-        DOCKER_HUB_CREDENTIALS = 'dockerhub-creds' // Jenkins credentials ID
-        KUBECONFIG = '/root/.kube/config'  // Path to kubeconfig on Jenkins agent
+        DOCKER_HUB_CREDENTIALS = 'dockerhub-creds'
+        KUBECONFIG = '/root/.kube/config'
     }
 
     stages {
@@ -46,19 +46,23 @@ pipeline {
             steps {
                 script {
                     try {
+                        // Apply manifests
                         sh '''
                         kubectl apply -f k8s/mysql.yaml
                         kubectl apply -f k8s/frontend.yaml
                         kubectl apply -f k8s/product.yaml
                         kubectl apply -f k8s/order.yaml
                         kubectl apply -f k8s/inventory.yaml
-
-                        kubectl rollout status deployment/frontend-deployment --timeout=60s
-                        kubectl rollout status deployment/product-deployment --timeout=60s
-                        kubectl rollout status deployment/order-deployment --timeout=60s
-                        kubectl rollout status deployment/inventory-deployment --timeout=60s
-                        kubectl rollout status deployment/mysql --timeout=60s
                         '''
+
+                        // Rollout checks with timeout
+                        timeout(time: 2, unit: 'MINUTES') {
+                            sh 'kubectl rollout status deployment/frontend-deployment --timeout=60s'
+                            sh 'kubectl rollout status deployment/product-deployment --timeout=60s'
+                            sh 'kubectl rollout status deployment/order-deployment --timeout=60s'
+                            sh 'kubectl rollout status deployment/inventory-deployment --timeout=60s'
+                            sh 'kubectl rollout status deployment/mysql --timeout=60s'
+                        }
                     } catch (Exception e) {
                         echo "❌ Deployment failed, rolling back..."
                         sh '''
